@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace JewleryShopExampleForm
 {
     public delegate void OnUserChangeEventHandler();
@@ -6,7 +9,7 @@ namespace JewleryShopExampleForm
     {
         public string LoginName { get; private set; }
         public string Password { get; private set; }
-
+        
         public User(string loginName, string password)
         {
             if (string.IsNullOrWhiteSpace(loginName))
@@ -20,7 +23,8 @@ namespace JewleryShopExampleForm
             }
 
             LoginName = loginName;
-            Password = password;
+            using var sha = SHA256.Create();
+            Password = Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(password)));
         }
     }
 
@@ -36,7 +40,9 @@ namespace JewleryShopExampleForm
         static void Main()
         {
             User Admin = new User("Admin", "admin123");
+
             UserList.Add(Admin);
+
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
@@ -78,22 +84,16 @@ namespace JewleryShopExampleForm
             }
 
         }
-        public static bool isLoginValid(string Login, string Password)
+        public static bool isLoginValid(string login, string password)
         {
-            User tempUser = new User(Login, Password);
-            foreach(User user in Program.UserList)
-            {
-                if(user.LoginName == tempUser.LoginName && user.Password == user.Password)
-                {
-                    tempUser = null; // destroy, to be eaten by GC
-                    return true;
-                }
-            }
-            return false;        
+            password = Convert.ToHexString(SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(password)));
+            return Program.UserList.Any(u =>
+                u.LoginName == login &&
+                u.Password == password);
         }
         public static User? RetriveUserObject(string Login, string Password)
         {
-            if(Login == null)
+            if (Login == null)
             {
                 throw new ArgumentNullException("Login", "Provided login is null");
             }
